@@ -1,71 +1,39 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
-	"github.com/gofiber/fiber/v2" 
+
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Todo struct {
-	Id        int    `json:"id"`
-	Completed bool   `json:"completed"`
-	Body      string `json:"body"`
+	Body      string `json:"Body"`
+	Completed bool   `json:"Completed"`
+	Id        int    `json:"id" bson:"_id"`
 }
 
+var collection *mongo.Collection
 func main() {
-	app := fiber.New()
-     err := godotenv.Load(".env")
+	fmt.Println("Hello world 4")
+	 err := godotenv.Load(".env")
 	 if err != nil {
-		log.Fatal(("Error loading .env file"))
+		log.Fatal("Erro fetching .env file")
 	 }
-	 PORT := os.Getenv("PORT")
-	todos := []Todo{}
-	//get route
-	app.Get("/api/todos", func(c *fiber.Ctx) error {
-  		return c.Status(200).JSON(todos)
-	})
-	//create or post route
-	app.Post("/api/todos", func(c *fiber.Ctx) error {
-		todo := &Todo{}
-		err := c.BodyParser(todo)
-		if err != nil {
-			return err
-		}
+	 MONGODB_URI := os.Getenv("MONGODB_URI")
+	 clientOptions := options.Client().ApplyURI(MONGODB_URI)
+	 client,err := mongo.Connect(context.Background(),clientOptions)
 
-		if todo.Body == "" {
-			return c.Status(400).JSON(fiber.Map{"message": "Todo body is required"})
-		}
-		todo.Id = len(todos) + 1
-		todos = append(todos, *todo)
-		return c.Status(200).JSON(todo)
-	})
-	//update route
-	app.Patch("/api/todos/:id", func(c *fiber.Ctx) error {
-		id := c.Params("id")
-
-		for i, todo := range todos {
-			if fmt.Sprint(todo.Id) == id {
-				todos[i].Completed = true
-				return c.Status(200).JSON(todos)
-			}
-		}
-		return c.Status(400).JSON(fiber.Map{"error": "todo not found "})
-	})
-    //delete todo
-	app.Delete("api/todos/:id", func(c *fiber.Ctx) error {
-		id := c.Params("id")
-		for i, todo := range todos {
-			if fmt.Sprint(todo.Id) == id {
-				todos = append(todos[:i], todos[i+1:]...)
-				return c.Status(400).JSON(fiber.Map{"succes": "true"})
-
-			}
-		}  
-		return c.SendStatus(404)
-	})
-
-	log.Fatal(app.Listen(":"+PORT))
-
+	 if err != nil {
+		log.Fatal(err)
+	 }
+	 err = client.Ping(context.Background(),nil)
+	 if err != nil {
+		log.Fatal(err)
+	 }
+	 fmt.Println("Connected to mongoDb")
 }
