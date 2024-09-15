@@ -22,7 +22,6 @@ type Todo struct {
 	Id  primitive.ObjectID  `json:"id,omitempty" bson:"_id,omitempty"`
 }
 func main(){
-	fmt.Println("hello world")
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("error fetching env variables")
@@ -40,7 +39,7 @@ func main(){
 	}
 	//closes the connection once the main func is executed
 	defer client.Disconnect(context.Background())
-	// sends a signal once the client is connected/returns an error instead
+	// sends a signal  thea the client can connect to DB/returns an error if client can't 
 	err = client.Ping(context.Background(),nil)
 	if err != nil {
 		log.Fatal(err)
@@ -86,6 +85,7 @@ func getTodos(c *fiber.Ctx) error {
 	}
 	return c.JSON(todos)
 }
+
 func createTodo(c *fiber.Ctx)error{
 	todo := new(Todo)
    
@@ -106,7 +106,13 @@ func createTodo(c *fiber.Ctx)error{
 }
 func updateTodo(c *fiber.Ctx)error{
   //collect id of the doc
+  var todo Todo
   id := c.Params("id")
+  err := c.BodyParser(&todo)
+  if err != nil {
+	return err
+  }
+  
   
   //converts string id to OjectId
   ObjectID,err := primitive.ObjectIDFromHex(id)
@@ -115,7 +121,7 @@ func updateTodo(c *fiber.Ctx)error{
   }
 
   filter := bson.M{"_id": ObjectID}
-  update := bson.M{"$set":bson.M{"completed":true}}
+  update := bson.M{"$set":bson.M{"completed":true,"body":todo.Body}}
   //edit the doc collected
  _ , err = collection.UpdateOne(context.Background(),filter,update)
 
