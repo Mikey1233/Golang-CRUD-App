@@ -1,10 +1,13 @@
 package main
+
 import (
 	"context"
 	"fmt"
 	"log"
 	"os"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -13,7 +16,7 @@ import (
 )
 type Todo struct {
 	Body string `json:"body"`
-	Id primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Id primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Completed bool `json:"completed"`
 }
 var collection *mongo.Collection
@@ -42,6 +45,10 @@ func main() {
 	// connection,err := mongo.c
 	collection = client.Database("golang_db").Collection("todos")
 	//routes
+	app.Use(cors.New(cors.Config{
+		AllowOrigins : "http://localhost:5173",
+		AllowHeaders : "Origin,Content-Type,Accept",
+	}))
 	app.Get("/api/todos", getTodo)
 	app.Post("/api/todos",createTodo)
 	app.Patch("/api/todos/:id",updateTodo)
@@ -94,7 +101,7 @@ func createTodo(ctx *fiber.Ctx) error{
 		 	return c.Status(400).JSON(fiber.Map{"error":"Invalid todo ID"})
 		   }
 		   filter := bson.M{"_id" : ObjectId}
-		   update := bson.M{"$set":bson.M{"completed":true,"body":todo.Body}}
+		   update := bson.M{"$set":bson.M{"completed":todo.Completed,"body":todo.Body}}
 		   _ , err = collection.UpdateOne(context.Background(),filter,update)
 		   if err != nil {
 			return err
